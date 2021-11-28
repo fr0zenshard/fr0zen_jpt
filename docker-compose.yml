@@ -1,0 +1,45 @@
+version: '2.3'
+
+x-environment: &environment
+  DEBUG: 1
+
+x-runtime: &runtime
+  volumes:
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro
+    - ./src:$WORKDIR
+    - $DATA_DIR:/data/
+    - $MODEL_DIR:/models/
+  restart: always
+
+services:
+  ci:
+    <<: *runtime
+    build:
+      context: .
+      args:
+        BASE_IMG: $BASE_IMG
+        WORKDIR: $WORKDIR
+    image: $REG/$SRV:$CI
+    environment:
+      <<: *environment
+    ports:
+      - $PORT:8888
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=PathPrefix:/$SRV/
+    privileged: true
+    restart: always
+    command:
+      - jupyter
+      - lab
+      - --ip=0.0.0.0
+      - --port=8888
+      - --no-browser
+      - --notebook-dir="/srv/"
+      - --allow-root
+
+networks:
+  default:
+    external:
+      name: $DOCKER_NETWORK
